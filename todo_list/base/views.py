@@ -5,6 +5,8 @@ from django.views.generic.edit import CreateView, UpdateView, DeleteView
 from django.urls import reverse_lazy
 from django.contrib.auth.views import LoginView
 
+from django.contrib.auth.mixins import LoginRequiredMixin
+
 from .models import Task
 
 
@@ -18,18 +20,26 @@ class CustomLoginView(LoginView):
 
 # inheriting from above import ListView
 
-class TaskList(ListView):
+
+class TaskList(LoginRequiredMixin, ListView):
     model = Task
     context_object_name = 'tasks'
+#below allows for return of the users tasks, not everybodys
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['tasks'] = context['tasks'].filter(user=self.request.user)
+        context['count'] = context['tasks'].filter(complete=False).count()
+        return context
 
 
-class TaskDetail(DetailView):
+class TaskDetail(LoginRequiredMixin, DetailView):
     model = Task
     context_object_name = "task"
     template_name = 'base/task_detail.html'
 
 
-class TaskCreate(CreateView):
+class TaskCreate(LoginRequiredMixin, CreateView):
     model = Task
     # creates model form, takes all fields from model - class Task(
     # models.Model)
@@ -37,13 +47,13 @@ class TaskCreate(CreateView):
     success_url = reverse_lazy('tasks')
 
 
-class TaskUpdate(UpdateView):
+class TaskUpdate(LoginRequiredMixin, UpdateView):
     model = Task
     fields = '__all__'
     success_url = reverse_lazy('tasks')
 
 
-class DeleteView(DeleteView):
+class DeleteView(LoginRequiredMixin, DeleteView):
     model = Task
     context_object_name = 'task'
     success_url = reverse_lazy('tasks')
